@@ -1,2 +1,7 @@
 plan for today:
 Read more about headers,
+
+What i got done:
+I learned about how to properly close sockets
+Made a makefile for the project, pretty simple
+Made a function that not exactly parses the url but more sanitizes it. (Should make this function get f.ex. from "http://www.google.com" to "www.google.com" and then use that in the rest of the code, instead of the full url) or so it parses the url to (scheme, host, path) and make the code build off this function.
