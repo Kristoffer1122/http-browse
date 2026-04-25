@@ -4,13 +4,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "url_parse/url_parse.h"
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
 char **get_args(int argc, char *argv[]) {
   char **target;
-  u_int8_t size = 3;
 
   target = malloc(sizeof(char *) * 3);
 
@@ -21,20 +22,18 @@ char **get_args(int argc, char *argv[]) {
 
   for (int arg = 1; arg < argc; arg++) {
     if (strcmp(argv[arg], "--ip") == 0 && arg + 1 < argc) {
-      target[0] = argv[arg + 1];
+      char *ip = argv[arg + 1];
+      target[0] = ip;
       arg++;
     } else if (strcmp(argv[arg], "--port") == 0 && arg + 1 < argc) {
-      target[1] = argv[arg + 1];
+      char *port = argv[arg + 1];
+      target[1] = port;
       arg++;
     } else if (strcmp(argv[arg], "--page") == 0 && arg + 1 < argc) {
-        for (int i = 0; i < strlen(argv[arg + 1]); i++) {
-            if (argv[arg + 1][i] == '/') {
-                // move all characters after the slash one position to the left
-                memmove(&argv[arg + 1][i], &argv[arg + 1][i + 1], strlen(argv[arg + 1]) - i);
-                printf("Page should not contain leading slash\n");
-            } 
-        }
-      target[2] = argv[arg + 1];
+      char *page = argv[arg + 1];
+      // parse the page argument to remove leading slash if it exists
+      page = url_parse(page);
+      target[2] = page;
       arg++;
     }
   }
