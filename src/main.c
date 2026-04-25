@@ -99,10 +99,12 @@ int main(int argc, char *argv[]) {
   printf("Recived %d bytes of data in buf\n", byte_count);
   printf("%s", buf);
 
+  if (close(sockfd))
+    perror("Close Failed");
+  printf("Connection Closed\n");
+
   free(target);
   free(res);
-  freeaddrinfo(res);
-  freeaddrinfo(&hints);
 
   return 0;
 }
