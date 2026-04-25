@@ -96,9 +96,14 @@ int main(int argc, char *argv[]) {
   // since recv does not add it
   byte_count = recv(sockfd, buf, sizeof(buf) - 1, 0);
   buf[byte_count] = 0;
-  printf("Recived %d bytes of data in buf\n", byte_count);
+  printf("Recived %d bytes of data:\n", byte_count);
   printf("%s", buf);
 
+  // close the connection
+  if (shutdown(sockfd, SHUT_RDWR) == -1) {
+    perror("Shutdown Failed");
+    exit(EXIT_FAILURE);
+  }
   if (close(sockfd))
     perror("Close Failed");
   printf("Connection Closed\n");
