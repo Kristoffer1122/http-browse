@@ -58,16 +58,26 @@ int main(int argc, char *argv[]) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
 
-  getaddrinfo(target_ip, target_port, &hints, &res);
+  if (getaddrinfo(target_ip, target_port, &hints, &res) != 0) {
+    perror("getaddrinfo");
+    exit(EXIT_FAILURE);
+  }
+
   sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
   // get address info
   struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
   char ipstr[INET_ADDRSTRLEN];
   inet_ntop(res->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
-
   printf("Connecting to Target: %s:%d\n", ipstr, ntohs(ipv4->sin_port));
-  connect(sockfd, res->ai_addr, res->ai_addrlen);
+
+  // i know if we have a socket, it could return -1 with errno EINPROGRESS, but
+  // for now im not implementing non-blocking sockets, so if we get -1, we will
+  // just exit with an error
+  if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
+    perror("Connection Failed");
+    exit(EXIT_FAILURE);
+  }
   printf("Connected!\n");
 
   printf("Sending GET Request...\n");
@@ -75,7 +85,11 @@ int main(int argc, char *argv[]) {
   snprintf(header, sizeof(header), "GET /%s HTTP/1.1\r\nHost: %s:%s\r\n\r\n",
            target_page, target_ip, target_port);
   printf("Header:\n%s", header);
-  send(sockfd, header, strlen(header), 0);
+
+  if (send(sockfd, header, strlen(header), 0) == -1) {
+    perror("Send Failed");
+    exit(EXIT_FAILURE);
+  }
   printf("GET Sent...\n");
 
   // add null terminator to end of buffer
@@ -87,6 +101,8 @@ int main(int argc, char *argv[]) {
 
   free(target);
   free(res);
+  freeaddrinfo(res);
+  freeaddrinfo(&hints);
 
   return 0;
 }
