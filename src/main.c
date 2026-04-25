@@ -27,6 +27,13 @@ char **get_args(int argc, char *argv[]) {
       target[1] = argv[arg + 1];
       arg++;
     } else if (strcmp(argv[arg], "--page") == 0 && arg + 1 < argc) {
+        for (int i = 0; i < strlen(argv[arg + 1]); i++) {
+            if (argv[arg + 1][i] == '/') {
+                // move all characters after the slash one position to the left
+                memmove(&argv[arg + 1][i], &argv[arg + 1][i + 1], strlen(argv[arg + 1]) - i);
+                printf("Page should not contain leading slash\n");
+            } 
+        }
       target[2] = argv[arg + 1];
       arg++;
     }
@@ -66,7 +73,7 @@ int main(int argc, char *argv[]) {
 
   printf("Sending GET Request...\n");
   char header[256];
-  snprintf(header, sizeof(header), "GET %s HTTP/1.1\r\nHost: %s:%s\r\n\r\n",
+  snprintf(header, sizeof(header), "GET /%s HTTP/1.1\r\nHost: %s:%s\r\n\r\n",
            target_page, target_ip, target_port);
   printf("Header:\n%s", header);
   send(sockfd, header, strlen(header), 0);
