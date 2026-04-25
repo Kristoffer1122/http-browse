@@ -1,0 +1,5 @@
+Plan for today:
+Get data from a hostname (e.g., www.google.com) using http.
+By opening a TCP connection on port 80 and sending an HTTP request, we can retrieve the HTML content of the webpage.
+We should send a simple HTTP GET request to the server and read the response.
+
