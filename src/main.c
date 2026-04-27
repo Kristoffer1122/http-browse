@@ -10,106 +10,111 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+typedef struct {
+    char *scheme, *host, *page, *port;
+    char **url;
+} Url;
+
 char **get_args(int argc, char *argv[]) {
-  char **target;
+    char **target;
 
-  target = malloc(sizeof(char *) * 3);
+    //           1        2      3
+    // url == scheme://host.com/path
+    target = malloc(sizeof(char *) * 3);
 
-  if (argc < 5) {
-    fprintf(stderr, "Usage: %s --ip <hostname> --port <port>\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
-
-  for (int arg = 1; arg < argc; arg++) {
-    if (strcmp(argv[arg], "--ip") == 0 && arg + 1 < argc) {
-      char *ip = argv[arg + 1];
-      target[0] = ip;
-      arg++;
-    } else if (strcmp(argv[arg], "--port") == 0 && arg + 1 < argc) {
-      char *port = argv[arg + 1];
-      target[1] = port;
-      arg++;
-    } else if (strcmp(argv[arg], "--page") == 0 && arg + 1 < argc) {
-      char *page = argv[arg + 1];
-      // parse the page argument to remove leading slash if it exists
-      page = url_parse(page);
-      target[2] = page;
-      arg++;
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s example.com\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
-  }
-  return target;
+
+    // automatically add port 80 and page /
+    if (strstr(argv[1], "HTTPS") == NULL && strstr(argv[1], "http") == NULL) {
+        target[0] = "HTTPS";
+        target[1] = argv[1];
+        target[2] = "/";
+
+    } else {
+        target[0] = "HTTP";
+        target[1] = argv[1];
+        target[2] = "/";
+    }
+
+    printf("url: %s://%s%s\n", target[0], target[1], target[2]);
+    return target;
 }
 
 int main(int argc, char *argv[]) {
-  struct addrinfo hints, *res;
-  int sockfd;
+    struct addrinfo hints, *res;
+    int sockfd;
 
-  char buf[2056];
-  int byte_count;
+    char buf[2056];
+    int byte_count;
 
-  char **target = get_args(argc, argv);
-  char *target_ip = target[0];
-  char *target_port = target[1];
-  char *target_page = target[2];
+    Url url;
+    url.url = get_args(argc, argv);
+    url.scheme = url.url[0];
+    url.host = url.url[1];
+    url.page = url.url[2];
+    url.port = strcmp(url.scheme, "https") == 0 ? "443" : "80";
 
-  // get host info, make socket and connect it
-  memset(&hints, 0, sizeof hints);
+    // get host info, make socket and connect it
+    memset(&hints, 0, sizeof hints);
 
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
-  if (getaddrinfo(target_ip, target_port, &hints, &res) != 0) {
-    perror("getaddrinfo");
-    exit(EXIT_FAILURE);
-  }
+    if (getaddrinfo(url.host, url.port, &hints, &res) != 0) {
+        perror("getaddrinfo");
+        exit(EXIT_FAILURE);
+    }
 
-  sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
-  // get address info
-  struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
-  char ipstr[INET_ADDRSTRLEN];
-  inet_ntop(res->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
-  printf("Connecting to Target: %s:%d\n", ipstr, ntohs(ipv4->sin_port));
+    // get address info
+    struct sockaddr_in *ipv4 = (struct sockaddr_in *)res->ai_addr;
+    char ipstr[INET_ADDRSTRLEN];
+    inet_ntop(res->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
+    printf("Connecting to url: %s:%d\n", ipstr, ntohs(ipv4->sin_port));
 
-  // i know if we have a socket, it could return -1 with errno EINPROGRESS, but
-  // for now im not implementing non-blocking sockets, so if we get -1, we will
-  // just exit with an error
-  if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
-    perror("Connection Failed");
-    exit(EXIT_FAILURE);
-  }
-  printf("Connected!\n");
+    // i know if we have a socket, it could return -1 with errno EINPROGRESS,
+    // but for now im not implementing non-blocking sockets, so if we get -1, we
+    // will just exit with an error
+    if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
+        perror("Connection Failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("Connected!\n");
 
-  printf("Sending GET Request...\n");
-  char header[256];
-  snprintf(header, sizeof(header), "GET /%s HTTP/1.1\r\nHost: %s:%s\r\n\r\n",
-           target_page, target_ip, target_port);
-  printf("Header:\n%s", header);
+    printf("Sending GET Request...\n");
+    char header[256];
+    snprintf(header, sizeof(header), "GET %s %s/1.1\r\nHost: %s:%s\r\n\r\n",
+             url.page, url.scheme, url.host, url.port);
+    printf("Header:\n%s", header);
 
-  if (send(sockfd, header, strlen(header), 0) == -1) {
-    perror("Send Failed");
-    exit(EXIT_FAILURE);
-  }
-  printf("GET Sent...\n");
+    if (send(sockfd, header, strlen(header), 0) == -1) {
+        perror("Send Failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("GET Sent...\n");
 
-  // add null terminator to end of buffer
-  // since recv does not add it
-  byte_count = recv(sockfd, buf, sizeof(buf) - 1, 0);
-  buf[byte_count] = 0;
-  printf("Recived %d bytes of data:\n", byte_count);
-  printf("%s", buf);
+    // add null terminator to end of buffer
+    // since recv does not add it
+    byte_count = recv(sockfd, buf, sizeof(buf) - 1, 0);
+    buf[byte_count] = 0;
+    printf("Recived %d bytes of data:\n", byte_count);
+    printf("%s", buf);
 
-  // close the connection
-  if (shutdown(sockfd, SHUT_RDWR) == -1) {
-    perror("Shutdown Failed");
-    exit(EXIT_FAILURE);
-  }
-  if (close(sockfd))
-    perror("Close Failed");
-  printf("Connection Closed\n");
+    // close the connection
+    if (shutdown(sockfd, SHUT_RDWR) == -1) {
+        perror("Shutdown Failed");
+        exit(EXIT_FAILURE);
+    }
+    if (close(sockfd))
+        perror("Close Failed");
+    printf("Connection Closed\n");
 
-  free(target);
-  free(res);
+    free(url.url);
+    free(res);
 
-  return 0;
+    return 0;
 }
