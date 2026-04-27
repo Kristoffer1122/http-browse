@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -g -O3
-INCLUDES = -Iurl_parse
+INCLUDES = -Iurl_parse -lssl -lcrypto
 
 SRC = main.c url_parse/url_parse.c
 OUT = http-browse
