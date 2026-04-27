@@ -43,21 +43,23 @@ char **get_args(int argc, char *argv[]) {
     }
 
     // automatically add port 80 and page /
-    if (strstr(argv[1], "https") == NULL && strstr(argv[1], "http") == NULL) {
-        target[0] = "HTTPS";
-        target[1] = argv[1];
+    if (strncmp(argv[1], "https://", 8) == 0) {
+        char *target_link = strtok(argv[1], "://");
+        target_link = strtok(NULL, "/");
+        target[0] = "https";
+        target[1] = target_link;
+        target[2] = "/";
+
+    } else if (strncmp(argv[1], "http://", 7) == 0) {
+        char *target_link = strtok(argv[1], "://");
+        target_link = strtok(NULL, "/");
+        target[0] = "http";
+        target[1] = target_link;
         target[2] = "/";
 
     } else {
-        target[0] = "HTTP";
-        target[1] = argv[1];
-        if (strstr(argv[1], "/") == NULL) {
-            target[2] = "/";
-        } else {
-            char *slash = strchr(argv[1], '/');
-            *slash = 0;
-            target[2] = slash;
-        }
+        fprintf(stderr, "Invalid URL Scheme: %s\n", argv[1]);
+        exit(EXIT_FAILURE);
     }
 
     printf("url: %s://%s%s\n", target[0], target[1], target[2]);
@@ -81,7 +83,7 @@ int main(int argc, char *argv[]) {
     url.scheme = url.url[0];
     url.host = url.url[1];
     url.page = url.url[2];
-    url.port = strcmp(url.scheme, "HTTPS") == 0 ? "443" : "80";
+    url.port = strcasecmp(url.scheme, "https") == 0 ? "443" : "80";
 
     // get host info, make socket and connect it
     memset(&hints, 0, sizeof hints);
