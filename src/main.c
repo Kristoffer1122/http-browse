@@ -137,8 +137,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Recived %d bytes of data:\n", byte_count);
-    printf("%s", buf);
+    printf("Recived %d bytes of data\n", total_bytes);
 
     // close the connection
     if (shutdown(sockfd, SHUT_RDWR) == -1) {
@@ -149,9 +148,12 @@ int main(int argc, char *argv[]) {
         perror("Close Failed");
     printf("Connection Closed\n");
 
-    shutdown_tls(&https_req);
+    if (strcasecmp(url.scheme, "https") == 0) {
+        shutdown_tls(&https_req);
+    }
+
     free(url.url);
-    free(res);
+    freeaddrinfo(res);
 
     return 0;
 }
