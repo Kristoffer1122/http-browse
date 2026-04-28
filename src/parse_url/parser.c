@@ -9,7 +9,7 @@ char **get_args(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    //           1        2      3    4
+    //           0        1      2    3
     // url == scheme://host.com/path port
     char **target = malloc(sizeof(char *) * 4);
     target[0] = target[1] = target[2] = target[3] = NULL;
