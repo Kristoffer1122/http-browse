@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror -g -O3
 INCLUDES = -lssl -lcrypto
 
-SRC = main.c
+SRC = $(shell find . -name '*.c')
 OUT = http-browse
 
 build:
