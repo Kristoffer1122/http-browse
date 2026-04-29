@@ -15,7 +15,7 @@ char **get_args(int argc, char *argv[]) {
     target[0] = target[1] = target[2] = target[3] = NULL;
 
     // parse the url and split it into scheme, host, and page
-    char *url = argv[1];
+    char *url = strdup(argv[1]);
     char *host;
 
     if (strncmp(url, "https://", 8) == 0) {
