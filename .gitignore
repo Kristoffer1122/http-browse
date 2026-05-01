@@ -1,2 +1,2 @@
-src/http-browse
-src/http-browse.dSYM/
+bin/
+node_modules/
